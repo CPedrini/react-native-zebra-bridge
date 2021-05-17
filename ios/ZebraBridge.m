@@ -5,6 +5,9 @@
 #import "ZebraPrinterFactory.h"
 #import "MfiBtPrinterConnection.h"
 #import "GraphicsUtil.h"
+#import "NetworkDiscoverer.h"
+#import "DiscoveredPrinterNetwork.h"
+#import "TcpPrinterConnection.h"
 
 @implementation ZebraBridge
 
@@ -80,23 +83,15 @@ RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
         
         if (didOpen == YES) {
             NSError* error;
-            id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
+            NSData* data = [NSData dataWithBytes:[zpl UTF8String] length:[zpl length]];
+            NSError* writeError;
             
-            if (printer != nil) {
-                // PrinterLanguage language = [printer getPrinterControlLanguage];
-
-                NSData* data = [NSData dataWithBytes:[zpl UTF8String] length:[zpl length]];
-                NSError* writeError;
-                
-                [connection write:data error:&writeError];
-                
-                if (writeError == nil) {
-                    resolve(@{@"message": @"Success!"});
-                } else {
-                    reject(@"", @"", @{@"error": @"Print failed."});
-                }
+            [connection write:data error:&writeError];
+            
+            if (writeError == nil) {
+                resolve(@{@"message": @"Success!"});
             } else {
-                reject(@"", @"", @{@"error": @"Couldn't detect language."});
+                reject(@"", @"", @{@"error": @"Print failed."});
             }
         } else {
             reject(@"", @"", @{@"error": @"Couldn't connect to the accessory."});
@@ -105,69 +100,90 @@ RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
 }
 
 RCT_EXPORT_METHOD(printImage:(NSString*)serialNumber
+                  ipAddress:(NSString*)ipAddress
+                  port:(NSInteger)port
                   imageBase64:(NSString*)imageBase64
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSLog(@"Provided serialNumber: %@", serialNumber);
+    NSLog(@"Provided ipAddress: %@", ipAddress);
+    NSLog(@"Provided port: %@", [@(port) stringValue]);
     NSLog(@"Provided image: %@", imageBase64);
     
-    // Parse image
+    id<ZebraPrinterConnection, NSObject> connection = nil;
     
-    NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
-    
-    UIImage* image = [UIImage imageWithData:imageData];
-    
-    // Get accesories
-    
-    EAAccessoryManager *manager = [EAAccessoryManager sharedAccessoryManager];
-    
-    EAAccessory* connectedAccessories = [manager connectedAccessories];
-
-    // Find accessory, we need to be sure that it is still there.
-
-    EAAccessory* accessory = nil;
-    
-    for (EAAccessory* managerAccessory in connectedAccessories) {
-        if ([serialNumber isEqualToString:managerAccessory.serialNumber]) {
-            accessory = managerAccessory;
-        }
+    if (ipAddress != nil) {
+        connection = [[TcpPrinterConnection alloc] initWithAddress:ipAddress andWithPort:port];
+    } else {
+        connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialNumber];
     }
     
-    if (!accessory) {
-        reject(@"", @"", @{@"error": @"Accessory not found."});
-    } else {
-        // Connect to the device.
+    bool didOpen = [connection open];
+    
+    if (didOpen == YES) {
+        // Parse image
+        NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
         
-        id<ZebraPrinterConnection, NSObject> connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialNumber];
+        UIImage* image = [UIImage imageWithData:imageData];
         
-        bool didOpen = [connection open];
+        NSError* error;
+        id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
         
-        if (didOpen == YES) {
-            NSError* error;
-            id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
+        if (printer != nil) {
+            // PrinterLanguage language = [printer getPrinterControlLanguage];
             
-            if (printer != nil) {
-                // PrinterLanguage language = [printer getPrinterControlLanguage];
-                
-                id<GraphicsUtil, NSObject> graphicsUtil = [printer getGraphicsUtil];
-                
-                NSError* writeError;
-                
-                [graphicsUtil printImage:[image CGImage] atX:5 atY:15 withWidth:-1 withHeight:-1 andIsInsideFormat:NO error:&writeError];
-                
-                if (writeError == nil) {
-                    resolve(@{@"message": @"Success!"});
-                } else {
-                    reject(@"", @"", @{@"error": @"Print failed."});
-                }
+            id<GraphicsUtil, NSObject> graphicsUtil = [printer getGraphicsUtil];
+            
+            NSError* writeError;
+            
+            [graphicsUtil printImage:[image CGImage] atX:5 atY:15 withWidth:-1 withHeight:-1 andIsInsideFormat:NO error:&writeError];
+            
+            if (writeError == nil) {
+                [connection close];
+                resolve(@{@"message": @"Success!"});
             } else {
-                reject(@"", @"", @{@"error": @"Couldn't detect language."});
+                reject(@"", @"", @{@"error": @"Print failed."});
             }
         } else {
-            reject(@"", @"", @{@"error": @"Couldn't connect to the accessory."});
+            reject(@"", @"", @{@"error": @"Couldn't detect language."});
+        }
+    } else {
+        reject(@"", @"", @{@"error": @"Couldn't connect to the accessory."});
+    }
+}
+
+RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSError* error;
+    NSArray* printers = [NetworkDiscoverer localBroadcast:(&error)];
+
+    NSLog(@"Available devices = %@", printers);
+    
+    NSMutableArray* parsedPrinters = [[NSMutableArray alloc] initWithCapacity:10];
+    
+    for (id object in printers) {
+        if ([object isKindOfClass:[DiscoveredPrinterNetwork class]]) {
+            DiscoveredPrinterNetwork* padr = (DiscoveredPrinterNetwork*) object;
+            
+            NSString* addr = [padr address];
+            
+            NSLog(@"Address is %@", addr);
+            
+            
+            NSDictionary* parsedPrinter = @{
+                @"ipAddress": [padr address],
+                @"port": [NSNumber numberWithUnsignedLong:padr.port],
+                @"name": [padr dnsName],
+            };
+            
+            [parsedPrinters addObject:parsedPrinter];
         }
     }
+        
+    NSLog(@"Parsed results %@", parsedPrinters);
+    
+    resolve(parsedPrinters);
 }
 
 @end
