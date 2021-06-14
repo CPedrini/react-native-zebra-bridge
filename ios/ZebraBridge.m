@@ -8,6 +8,7 @@
 #import "NetworkDiscoverer.h"
 #import "DiscoveredPrinterNetwork.h"
 #import "TcpPrinterConnection.h"
+#import "BROTHERSDK.h"
 
 @implementation ZebraBridge
 
@@ -184,6 +185,46 @@ RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
     NSLog(@"Parsed results %@", parsedPrinters);
     
     resolve(parsedPrinters);
+}
+
+RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
+                  imageBase64:(NSString*)imageBase64
+                  printWithResolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSLog(@"Provided ipAddress: %@", ipAddress);
+    NSLog(@"Provided port: %@", [@(port) stringValue]);
+    NSLog(@"Provided image: %@", imageBase64);
+    
+    NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
+
+    UIImage* image = [UIImage imageWithData:imageData];
+
+    // Save image as PNG.
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
+
+    [UIImagePNGRepresentation(image) writeToFile:filePath atomically:YES];
+    
+    // Connect to printer
+    BROTHERSDK *_lib = [BROTHERSDK new];
+    // [_lib openportMFI:@"com.issc.datapath"];
+    [_lib openport:ipAddress];
+    
+    [_lib downloadbmp:filePath asName:@"Receipt.png"];
+    
+    [_lib setup:@"72" height:@"40" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
+    [_lib clearbuffer];
+    [_lib nobackfeed];
+    
+    [_lib sendCommand:@"PUTBMP 0,0,\"Receipt.png\"\r\n"];
+    
+    [_lib printlabel:@"1" copies:@"1"];
+    
+    NSLog([NSString stringWithFormat:@"%@",[_lib printerstatus]]);
+    
+    [_lib formfeed];
+    [_lib closeport];
 }
 
 @end

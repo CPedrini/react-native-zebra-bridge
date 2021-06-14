@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		703F371A256E556F00246790 /* ZebraBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 703F3718256E556F00246790 /* ZebraBridge.m */; };
 		703F371E256E563700246790 /* libZSDK_API.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 703F371D256E563700246790 /* libZSDK_API.a */; };
+		70BF4F1D267630260082E546 /* libBROTHERSDK.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 70BF4F1C267630260082E546 /* libBROTHERSDK.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -28,6 +29,7 @@
 		703F3718256E556F00246790 /* ZebraBridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZebraBridge.m; sourceTree = "<group>"; };
 		703F3719256E556F00246790 /* ZebraBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZebraBridge.h; sourceTree = "<group>"; };
 		703F371D256E563700246790 /* libZSDK_API.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libZSDK_API.a; path = lib/libZSDK_API.a; sourceTree = "<group>"; };
+		70BF4F1C267630260082E546 /* libBROTHERSDK.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = lib/libBROTHERSDK.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +38,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				703F371E256E563700246790 /* libZSDK_API.a in Frameworks */,
+				70BF4F1D267630260082E546 /* libBROTHERSDK.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,6 +66,7 @@
 		703F3711256E544600246790 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				70BF4F1C267630260082E546 /* libBROTHERSDK.a */,
 				703F371D256E563700246790 /* libZSDK_API.a */,
 			);
 			name = Frameworks;
