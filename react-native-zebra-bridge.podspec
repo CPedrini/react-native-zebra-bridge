@@ -25,6 +25,6 @@ Pod::Spec.new do |s|
   # ...
   # s.dependency "..."
 
-  s.ios.vendored_libraries = 'ios/lib/libZSDK_API.a'
+  s.ios.vendored_libraries = 'ios/lib/libZSDK_API.a', 'ios/lib/libBROTHERSDK.a'
 end
 

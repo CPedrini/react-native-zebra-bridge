@@ -9,6 +9,7 @@
 #import "DiscoveredPrinterNetwork.h"
 #import "TcpPrinterConnection.h"
 #import "BROTHERSDK.h"
+#import "libpng/png.h"
 
 @implementation ZebraBridge
 
@@ -193,7 +194,6 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSLog(@"Provided ipAddress: %@", ipAddress);
-    NSLog(@"Provided port: %@", [@(port) stringValue]);
     NSLog(@"Provided image: %@", imageBase64);
     
     NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
@@ -204,7 +204,15 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
 
-    [UIImagePNGRepresentation(image) writeToFile:filePath atomically:YES];
+    UIImage* binaryImage = [self pureBlackAndWhiteImage2:image];
+    
+    /*size_t bpp = CGImageGetBitsPerPixel(binaryImage.CGImage);*/
+    
+    // NSLog([NSString stringWithFormat:@"%zu@", bpp]);
+    
+    //[UIImagePNGRepresentation(binaryImage) writeToFile:filePath atomically:YES];
+    
+    [self writeUIImage:binaryImage toPNG:filePath];
     
     // Connect to printer
     BROTHERSDK *_lib = [BROTHERSDK new];
@@ -225,6 +233,213 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
     
     [_lib formfeed];
     [_lib closeport];
+}
+
+/*- (UIImage *)pureBlackAndWhiteImage:(UIImage *)image {
+
+    unsigned char *dataBitmap = [self bitmapFromImage:image];
+
+    for (int i = 0; i < image.size.width * image.size.height * 4; i += 4) {
+
+        if ((dataBitmap[i + 1] + dataBitmap[i + 2] + dataBitmap[i + 3]) < (255 * 3 / 2)) {
+            dataBitmap[i + 1] = 0;
+            dataBitmap[i + 2] = 0;
+            dataBitmap[i + 3] = 0;
+        } else {
+            dataBitmap[i + 1] = 255;
+            dataBitmap[i + 2] = 255;
+            dataBitmap[i + 3] = 255;
+        }
+    }
+
+    image = [self imageWithBits:dataBitmap withSize:image.size];
+
+    return image;
+}
+
+// Retrieves the bits from the context once the image has been drawn.
+- (unsigned char *)bitmapFromImage:(UIImage *)image {
+
+    // Creates a bitmap from the given image.
+    CGContextRef contex = CreateARGBBitmapContext(image.size);
+    if (contex == NULL) {
+        return NULL;
+    }
+
+    CGRect rect = CGRectMake(0.0f, 0.0f, image.size.width, image.size.height);
+    CGContextDrawImage(contex, rect, image.CGImage);
+    unsigned char *data = CGBitmapContextGetData(contex);
+    CGContextRelease(contex);
+
+    return data;
+}
+
+// Fills an image with bits.
+- (UIImage *)imageWithBits:(unsigned char *)bits withSize:(CGSize)size {
+
+    // Creates a color space
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (colorSpace == NULL) {
+
+        fprintf(stderr, "Error allocating color space\n");
+        free(bits);
+        return nil;
+    }
+
+    CGContextRef context = CGBitmapContextCreate (bits, size.width, size.height, 8, size.width * 4, colorSpace, kCGImageAlphaPremultipliedFirst);
+    if (context == NULL) {
+
+        fprintf (stderr, "Error. Context not created\n");
+        free (bits);
+        CGColorSpaceRelease(colorSpace );
+        return nil;
+    }
+
+    CGColorSpaceRelease(colorSpace );
+    CGImageRef ref = CGBitmapContextCreateImage(context);
+    free(CGBitmapContextGetData(context));
+    CGContextRelease(context);
+
+    UIImage *img = [UIImage imageWithCGImage:ref];
+    CFRelease(ref);
+    return img;
+}
+
+CGContextRef CreateARGBBitmapContext(CGSize size)
+{
+    CGContextRef    context = NULL;
+    CGColorSpaceRef colorSpace;
+    void *          bitmapData;
+    int             bitmapByteCount;
+    int             bitmapBytesPerRow;
+
+    // Get image width, height. We'll use the entire image.
+    size_t pixelsWide = size.width;
+    size_t pixelsHigh = size.height;
+
+    // Declare the number of bytes per row. Each pixel in the bitmap in this
+    // example is represented by 4 bytes; 8 bits each of red, green, blue, and
+    // alpha.
+    bitmapBytesPerRow   = (pixelsWide * 4);
+    bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
+
+    // Use the generic RGB color space.
+    colorSpace = CGColorSpaceCreateDeviceRGB();
+
+    if (colorSpace == NULL)
+    {
+        fprintf(stderr, "Error allocating color space\n");
+        return NULL;
+    }
+
+    // Allocate memory for image data. This is the destination in memory
+    // where any drawing to the bitmap context will be rendered.
+    bitmapData = malloc( bitmapByteCount );
+    if (bitmapData == NULL)
+    {
+        fprintf (stderr, "Memory not allocated!");
+        CGColorSpaceRelease( colorSpace );
+        return NULL;
+    }
+    // Create the bitmap context. We want pre-multiplied ARGB, 8-bits
+    // per component. Regardless of what the source image format is
+    // (CMYK, Grayscale, and so on) it will be converted over to the format
+    // specified here by CGBitmapContextCreate.
+    context = CGBitmapContextCreate (bitmapData,
+                                     pixelsWide,
+                                     pixelsHigh,
+                                     8,      // bits per component
+                                     bitmapBytesPerRow,
+                                     colorSpace,
+                                     kCGImageAlphaPremultipliedFirst);
+    if (context == NULL)
+    {
+        free (bitmapData);
+        fprintf (stderr, "Context not created!");
+    }
+
+    // Make sure and release colorspace before returning
+    CGColorSpaceRelease( colorSpace );
+
+    return context;
+
+}*/
+
+- (UIImage *)pureBlackAndWhiteImage2:(UIImage *)image {
+    UIGraphicsBeginImageContextWithOptions(image.size, YES, 1.0);
+    
+    CGRect imageRect = CGRectMake(0, 0, image.size.width, image.size.height);
+    
+    // Draw the image with the luminosity blend mode.
+    [image drawInRect:imageRect blendMode:kCGBlendModeLuminosity alpha:1.0];
+    
+    // Get the resulting image.
+    UIImage *filteredImage = UIGraphicsGetImageFromCurrentImageContext();
+    
+    size_t bpp = CGImageGetBitsPerPixel(filteredImage.CGImage);
+    
+    NSLog([NSString stringWithFormat:@"%zu@", bpp]);
+    
+    UIGraphicsEndImageContext();
+
+    return filteredImage;
+}
+
+- (void) writeUIImage:(UIImage *)uiImage toPNG:(NSString *)file {
+    FILE *fp = fopen([file UTF8String], "wb");
+    // if (!fp) return [self reportError:[NSString stringWithFormat:@"Unable to open file %@", file]];
+
+    CGImageRef image = [uiImage CGImage];
+
+    CGDataProviderRef provider = CGImageGetDataProvider(image);
+    CFDataRef pixelData = CGDataProviderCopyData(provider);
+    unsigned char *buffer = (unsigned char *)CFDataGetBytePtr(pixelData);
+
+    CGBitmapInfo bitmapInfo = CGImageGetBitmapInfo(image);
+    CGImageAlphaInfo alphaInfo = CGImageGetAlphaInfo(image);
+    size_t compBits = CGImageGetBitsPerComponent(image);
+    size_t pixelBits = CGImageGetBitsPerPixel(image);
+    size_t width = CGImageGetWidth(image);
+    size_t height = CGImageGetHeight(image);
+    NSLog(@"bitmapInfo=%d, alphaInfo=%d, pixelBits=%lu, compBits=%lu, width=%lu, height=%lu", bitmapInfo, alphaInfo, pixelBits, compBits, width, height);
+
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    // if (!png_ptr) [self reportError:@"Unable to create write struct."];
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+        // return [self reportError:@"Unable to create info struct."];
+    }
+
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(fp);
+        // return [self reportError:@"Got error callback."];
+    }
+
+    png_init_io(png_ptr, fp);
+    png_set_IHDR(png_ptr, info_ptr, (png_uint_32)width, (png_uint_32)height, 1, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+    png_write_info(png_ptr, info_ptr);
+
+    png_set_packing(png_ptr);
+
+    png_bytep line = (png_bytep)png_malloc(png_ptr, width);
+    unsigned long pos;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            pos = y * width * 4 + x * 4; // multiplying by four because each pixel is represented by four bytes
+            line[x] = buffer[ pos ]; // just use the first byte (red) since r=g=b in grayscale
+        }
+        png_write_row(png_ptr, line);
+    }
+
+    png_write_end(png_ptr, info_ptr);
+
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    if (pixelData) CFRelease(pixelData);
+
+    fclose(fp);
 }
 
 @end
