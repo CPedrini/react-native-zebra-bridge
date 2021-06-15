@@ -233,6 +233,8 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
     
     [_lib formfeed];
     [_lib closeport];
+
+    resolve(@{@"message": @"Success!"});
 }
 
 /*- (UIImage *)pureBlackAndWhiteImage:(UIImage *)image {
