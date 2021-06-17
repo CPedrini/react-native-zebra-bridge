@@ -5,8 +5,8 @@
 //  Copyright © 2018 Brother Industries, Ltd. All rights reserved.
 //
 
-#import <BRLMPrinterKit/BRLMPrintSettingsProtocol.h>
-#import <BRLMPrinterKit/BRLMPrintImageSettings.h>
+#import "BRLMPrintSettingsProtocol.h"
+#import "BRLMPrintImageSettings.h"
 
     typedef NS_ENUM(NSInteger, BRLMQLPrintSettingsLabelSize) {
         BRLMQLPrintSettingsLabelSizeDieCutW17H54,

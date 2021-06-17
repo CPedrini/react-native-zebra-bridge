@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <BRLMPrinterKit/BRLMPrinterDefine.h>
+#import "BRLMPrinterDefine.h"
 
 // Set the "serialNumber" that can be getting from EAAccessory.
 // Or set the "Bluetooth Address" that can be getting from your printer (*by self-printing and so on).

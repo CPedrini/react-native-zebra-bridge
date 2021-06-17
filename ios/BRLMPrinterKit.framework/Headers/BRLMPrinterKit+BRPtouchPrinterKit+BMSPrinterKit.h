@@ -13,6 +13,6 @@ FOUNDATION_EXPORT double BRLMPrinterKitVersionNumber;
 //! Project version string for BRLMPrinterKit.
 FOUNDATION_EXPORT const unsigned char BRLMPrinterKitVersionString[];
 
-#import <BRLMPrinterKit/BRLMPrinterKit.h>
-#import <BRLMPrinterKit/BRPtouchPrinterKit.h>
-#import <BRLMPrinterKit/BMSPrinterKit.h>
+#import "BRLMPrinterKit.h"
+#import "BRPtouchPrinterKit.h"
+#import "BMSPrinterKit.h"

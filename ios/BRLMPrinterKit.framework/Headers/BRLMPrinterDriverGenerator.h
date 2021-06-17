@@ -7,9 +7,9 @@
 
 #import <Foundation/Foundation.h>
 
-#import <BRLMPrinterKit/BRLMPrinterDriver.h>
-#import <BRLMPrinterKit/BRLMChannel.h>
-#import <BRLMPrinterKit/BRLMOpenChannelError.h>
+#import "BRLMPrinterDriver.h"
+#import "BRLMChannel.h"
+#import "BRLMOpenChannelError.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

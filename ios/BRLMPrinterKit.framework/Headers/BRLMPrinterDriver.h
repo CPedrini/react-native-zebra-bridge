@@ -7,11 +7,11 @@
 
 #import <Foundation/Foundation.h>
 
-#import <BRLMPrinterKit/BRLMPrinterDefine.h>
-#import <BRLMPrinterKit/BRLMPrintError.h>
-#import <BRLMPrinterKit/BRLMPrintSettingsProtocol.h>
-#import <BRLMPrinterKit/BRLMPrinterStatus.h>
-#import <BRLMPrinterKit/BRLMGetStatusError.h>
+#import "BRLMPrinterDefine.h"
+#import "BRLMPrintError.h"
+#import "BRLMPrintSettingsProtocol.h"
+#import "BRLMPrinterStatus.h"
+#import "BRLMGetStatusError.h"
 
 
 NS_ASSUME_NONNULL_BEGIN

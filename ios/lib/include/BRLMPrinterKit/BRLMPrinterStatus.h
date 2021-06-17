@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <BRLMPrinterKit/BRLMPrinterDefine.h>
+#import "BRLMPrinterDefine.h"
 
 typedef struct {
     Byte    byHead;                // Head mark

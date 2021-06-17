@@ -10,14 +10,14 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <UIKit/UIKit.h>
 
-#include <BRLMPrinterKit/BRPtouchPrintInfo.h>
-#include <BRLMPrinterKit/BRPtouchPrinterData.h>
-#include <BRLMPrinterKit/BRPtouchPrinterStatus.h>
-#include <BRLMPrinterKit/BRPtouchLabelParam.h>
-#include <BRLMPrinterKit/BRPtouchLabelInfoStatus.h>
-#import <BRLMPrinterKit/BRPtouchBatteryInfo.h>
-#import <BRLMPrinterKit/BRCustomPaperInfoCommand.h>
-#include <BRLMPrinterKit/BRPtouchTemplateInfo.h>
+#include "BRPtouchPrintInfo.h"
+#include "BRPtouchPrinterData.h"
+#include "BRPtouchPrinterStatus.h"
+#include "BRPtouchLabelParam.h"
+#include "BRPtouchLabelInfoStatus.h"
+#import "BRPtouchBatteryInfo.h"
+#import "BRCustomPaperInfoCommand.h"
+#include "BRPtouchTemplateInfo.h"
 
 #define ERROR_NONE_          0
 #define ERROR_TIMEOUT		-3

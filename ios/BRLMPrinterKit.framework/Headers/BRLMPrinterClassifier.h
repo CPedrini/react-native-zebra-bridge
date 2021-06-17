@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <BRLMPrinterKit/BRLMPrinterDefine.h>
+#import "BRLMPrinterDefine.h"
 
 typedef NS_ENUM(NSInteger, BRLMPrinterClassifierSeries) {
     BRLMPrinterClassifierSeriesPJ,

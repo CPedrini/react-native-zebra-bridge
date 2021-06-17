@@ -5,7 +5,7 @@
 //  Copyright © 2020 Brother Industries, Ltd. All rights reserved.
 //
 
-#import <BRLMPrinterKit/BRLMError.h>
+#import "BRLMError.h"
 
 typedef NS_ENUM(NSInteger, BRLMPrintErrorCode) {
     BRLMPrintErrorCodeNoError,

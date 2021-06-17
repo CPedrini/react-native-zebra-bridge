@@ -5,10 +5,10 @@
 //  Copyright © 2020 Brother Industries, Ltd. All rights reserved.
 //
 
-#import <BRLMPrinterKit/BRLMPrintSettingsProtocol.h>
-#import <BRLMPrinterKit/BRLMPrintImageSettings.h>
+#import "BRLMPrintSettingsProtocol.h"
+#import "BRLMPrintImageSettings.h"
 
-#import <BRLMPrinterKit/BRLMPJPrintSettingsPaperSize.h>
+#import "BRLMPJPrintSettingsPaperSize.h"
 
 typedef float BRLMPrintSettingsLengthScale;
 

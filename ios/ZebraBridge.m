@@ -10,7 +10,15 @@
 #import "TcpPrinterConnection.h"
 #import "BROTHERSDK.h"
 #import "libpng/png.h"
-#import <BRLMPrinterKit/BRLMPrinterKit.h>
+#import "BRLMPrinterKit.h"
+#import "BRLMChannel.h""
+#import "BRLMOpenChannelError.h"
+#import "BRLMPrinterDriverGenerator.h"
+#import "BRLMPrinterDriver.h"
+#import "BRLMTDPrintSettings.h"
+#import "BRLMCustomPaperSize.h"
+#import "BRLMPrinterDefine.h"
+#import "BRLMPrintError.h"
 
 @implementation ZebraBridge
 
@@ -192,21 +200,21 @@ RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
 RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
                   ipAddress:(NSString*)ipAddress
                   imageBase64:(NSString*)imageBase64
-                  isTypeB:(bool)isTypeB
+                  isTypeB:(BOOL)isTypeB
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSLog(@"Provided serialNumber: %@", serialNumber);
     NSLog(@"Provided ipAddress: %@", ipAddress);
-    NSLog(@"Provided isTypeB: %@", isTypeB);
+    NSLog(@"Provided isTypeB: %@", isTypeB ? @"YES" : @"NO");
     NSLog(@"Provided image: %@", imageBase64);
     
     UIImage* image = [self getImageFromBase64:imageBase64];
     
-    if (isTypeB == TRUE) {
+    if (isTypeB == YES) {
         [self printBrotherTypeB:ipAddress image:image];
     } else {
-        [self printBrotherSdk4:ipAddress serialNumber:serialNumber image:image];
+        [self printBrotherSdk4:serialNumber ipAddress:ipAddress image:image];
     }
 
     resolve(@{@"message": @"Success!"});
@@ -240,8 +248,11 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
     return true;
 }
 
+#define assumeNotNull(_value) \
+    ({ if (!_value) abort(); __auto_type const _temp = _value; _temp; })
+
 - (bool) printBrotherSdk4:(NSString *)serialNumber ipAddress:(NSString *)ipAddress image:(UIImage *)image {
-    BRLMChannel channel = nil;
+    BRLMChannel* channel = nil;
     
     if (ipAddress != nil) {
         channel = [[BRLMChannel alloc] initWithWifiIPAddress:ipAddress];
@@ -257,35 +268,35 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
         return false;
     }
     
-    BRLMPRinterDriver* printerDriver = driverGenerateResult.driver;
+    self.driver = driverGenerateResult.driver;
     
-    BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:BRLMPrinterModelTD_YOURS];
+    BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:[NSNumber numberWithInteger:BRLMPrinterModelTD_4550DNWB]];
     
     BRLMCustomPaperSizeMargins margin = BRLMCustomPaperSizeMarginsMake(0.0, 0.0, 0.0, 0.0);
-    BRLMCustomPapertSize* customPaperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWith:2.0
-                                                                                      margins:margin
-                                                                                 unitOfLength:BRLMCustomPaperSizeLengthUnitInch];
+    self.paperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWidth:2.0
+                                                                margins:margin
+                                                           unitOfLength:BRLMCustomPaperSizeLengthUnitInch];
     
-    if (customPaperSize != nil) {
-        tdSettings.customPaperSize = customPaperSize;
+    if (self.paperSize != nil) {
+        tdSettings.customPaperSize = self.paperSize;
     }
     
-    BRLMPRintError* printError = [printerDriver printImageWithImage:image settings:tdSettings];
+    BRLMPrintError* printError = [self.driver printImageWithImage:image.CGImage settings:tdSettings];
     
     if (printError.code != BRLMPrintErrorCodeNoError) {
         NSLog(@"Error - Print Image: %@", @(printError.code));
         
-        [channel closeChannel];
+        [self.driver closeChannel];
         return false;
     }
     
     NSLog(@"Success - Print Image: %@", @(printError.code));
-    [channel closeChannel];
+    [self.driver closeChannel];
     
     return true;
 }
 
-- (UIImage *)getImageFromBase64:(NSString *)imageBase64) {
+- (UIImage *)getImageFromBase64:(NSString *)imageBase64 {
     NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
 
     UIImage* image = [UIImage imageWithData:imageData];

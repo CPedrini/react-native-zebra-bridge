@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <BRLMPrinterKit/BRPtouchDeviceInfo.h>
+#import "BRPtouchDeviceInfo.h"
 #import <CoreBluetooth/CoreBluetooth.h>
 
 @interface BRPtouchBLEManager : NSObject

@@ -6,7 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <BRLMPrinterKit/BRLMPrinterDefine.h>
+#import "BRLMPrinterDefine.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

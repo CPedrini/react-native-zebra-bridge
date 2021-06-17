@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import <BRLMPrinterKit/BRLMPJPrintSettingsCustomPaperSize.h>
+#import "BRLMPJPrintSettingsCustomPaperSize.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

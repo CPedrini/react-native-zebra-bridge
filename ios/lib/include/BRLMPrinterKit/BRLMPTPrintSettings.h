@@ -5,8 +5,8 @@
 //  Copyright © 2020 Brother Industries, Ltd. All rights reserved.
 //
 
-#import <BRLMPrinterKit/BRLMPrintSettingsProtocol.h>
-#import <BRLMPrinterKit/BRLMPrintImageSettings.h>
+#import "BRLMPrintSettingsProtocol.h"
+#import "BRLMPrintImageSettings.h"
 
     typedef NS_ENUM(NSInteger, BRLMPTPrintSettingsLabelSize) {
         BRLMPTPrintSettingsLabelSizeWidth3_5mm,

@@ -5,10 +5,10 @@
 //  Copyright © 2018 Brother Industries, Ltd. All rights reserved.
 //
 
-#import <BRLMPrinterKit/BRLMPrintSettingsProtocol.h>
-#import <BRLMPrinterKit/BRLMPrintImageSettings.h>
+#import "BRLMPrintSettingsProtocol.h"
+#import "BRLMPrintImageSettings.h"
 
-#import <BRLMPrinterKit/BRLMCustomPaperSize.h>
+#import "BRLMCustomPaperSize.h"
 
 typedef NS_ENUM(NSInteger, BRLMTDPrintSettingsDensity) {
     BRLMTDPrintSettingsDensityWeakLevel5,
