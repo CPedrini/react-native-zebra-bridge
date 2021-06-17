@@ -10,6 +10,7 @@
 #import "TcpPrinterConnection.h"
 #import "BROTHERSDK.h"
 #import "libpng/png.h"
+#import <BRLMPrinterKit/BRLMPrinterKit.h>
 
 @implementation ZebraBridge
 
@@ -188,186 +189,113 @@ RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromi
     resolve(parsedPrinters);
 }
 
-RCT_EXPORT_METHOD(printBrotherImage:(NSString*)ipAddress
+RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
+                  ipAddress:(NSString*)ipAddress
                   imageBase64:(NSString*)imageBase64
+                  isTypeB:(bool)isTypeB
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
+    NSLog(@"Provided serialNumber: %@", serialNumber);
     NSLog(@"Provided ipAddress: %@", ipAddress);
+    NSLog(@"Provided isTypeB: %@", isTypeB);
     NSLog(@"Provided image: %@", imageBase64);
     
-    NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
-
-    UIImage* image = [UIImage imageWithData:imageData];
-
-    // Save image as PNG.
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
-
-    UIImage* binaryImage = [self pureBlackAndWhiteImage2:image];
+    UIImage* image = [self getImageFromBase64:imageBase64];
     
-    /*size_t bpp = CGImageGetBitsPerPixel(binaryImage.CGImage);*/
-    
-    // NSLog([NSString stringWithFormat:@"%zu@", bpp]);
-    
-    //[UIImagePNGRepresentation(binaryImage) writeToFile:filePath atomically:YES];
-    
-    [self writeUIImage:binaryImage toPNG:filePath];
-    
-    // Connect to printer
-    BROTHERSDK *_lib = [BROTHERSDK new];
-    // [_lib openportMFI:@"com.issc.datapath"];
-    [_lib openport:ipAddress];
-    
-    [_lib downloadbmp:filePath asName:@"Receipt.png"];
-    
-    [_lib setup:@"72" height:@"40" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
-    [_lib clearbuffer];
-    [_lib nobackfeed];
-    
-    [_lib sendCommand:@"PUTBMP 0,0,\"Receipt.png\"\r\n"];
-    
-    [_lib printlabel:@"1" copies:@"1"];
-    
-    NSLog([NSString stringWithFormat:@"%@",[_lib printerstatus]]);
-    
-    [_lib formfeed];
-    [_lib closeport];
+    if (isTypeB == TRUE) {
+        [self printBrotherTypeB:ipAddress image:image];
+    } else {
+        [self printBrotherSdk4:ipAddress serialNumber:serialNumber image:image];
+    }
 
     resolve(@{@"message": @"Success!"});
 }
 
-/*- (UIImage *)pureBlackAndWhiteImage:(UIImage *)image {
+- (bool) printBrotherTypeB:(NSString *)ipAddress image:(UIImage *)image {
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
+    
+    [self writePngAs1bpp:image toPNG:filePath];
+                               
+    BROTHERSDK *_lib = [BROTHERSDK new];
 
-    unsigned char *dataBitmap = [self bitmapFromImage:image];
+    [_lib openport:ipAddress];
 
-    for (int i = 0; i < image.size.width * image.size.height * 4; i += 4) {
+    [_lib downloadbmp:filePath asName:@"Receipt.png"];
 
-        if ((dataBitmap[i + 1] + dataBitmap[i + 2] + dataBitmap[i + 3]) < (255 * 3 / 2)) {
-            dataBitmap[i + 1] = 0;
-            dataBitmap[i + 2] = 0;
-            dataBitmap[i + 3] = 0;
-        } else {
-            dataBitmap[i + 1] = 255;
-            dataBitmap[i + 2] = 255;
-            dataBitmap[i + 3] = 255;
-        }
-    }
+    [_lib setup:@"72" height:@"40" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
+    [_lib clearbuffer];
+    [_lib nobackfeed];
 
-    image = [self imageWithBits:dataBitmap withSize:image.size];
+    [_lib sendCommand:@"PUTBMP 0,0,\"Receipt.png\"\r\n"];
 
-    return image;
+    [_lib printlabel:@"1" copies:@"1"];
+
+    NSLog([NSString stringWithFormat:@"%@",[_lib printerstatus]]);
+
+    [_lib formfeed];
+    [_lib closeport];
+
+    return true;
 }
 
-// Retrieves the bits from the context once the image has been drawn.
-- (unsigned char *)bitmapFromImage:(UIImage *)image {
-
-    // Creates a bitmap from the given image.
-    CGContextRef contex = CreateARGBBitmapContext(image.size);
-    if (contex == NULL) {
-        return NULL;
+- (bool) printBrotherSdk4:(NSString *)serialNumber ipAddress:(NSString *)ipAddress image:(UIImage *)image {
+    BRLMChannel channel = nil;
+    
+    if (ipAddress != nil) {
+        channel = [[BRLMChannel alloc] initWithWifiIPAddress:ipAddress];
+    } else {
+        channel = [[BRLMChannel alloc] initWithBluetoothSerialNumber:serialNumber];
     }
-
-    CGRect rect = CGRectMake(0.0f, 0.0f, image.size.width, image.size.height);
-    CGContextDrawImage(contex, rect, image.CGImage);
-    unsigned char *data = CGBitmapContextGetData(contex);
-    CGContextRelease(contex);
-
-    return data;
+    
+    BRLMPrinterDriverGenerateResult* driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
+    
+    if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
+        driverGenerateResult.driver == nil) {
+        NSLog(@"%@", @(driverGenerateResult.error.code));
+        return false;
+    }
+    
+    BRLMPRinterDriver* printerDriver = driverGenerateResult.driver;
+    
+    BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:BRLMPrinterModelTD_YOURS];
+    
+    BRLMCustomPaperSizeMargins margin = BRLMCustomPaperSizeMarginsMake(0.0, 0.0, 0.0, 0.0);
+    BRLMCustomPapertSize* customPaperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWith:2.0
+                                                                                      margins:margin
+                                                                                 unitOfLength:BRLMCustomPaperSizeLengthUnitInch];
+    
+    if (customPaperSize != nil) {
+        tdSettings.customPaperSize = customPaperSize;
+    }
+    
+    BRLMPRintError* printError = [printerDriver printImageWithImage:image settings:tdSettings];
+    
+    if (printError.code != BRLMPrintErrorCodeNoError) {
+        NSLog(@"Error - Print Image: %@", @(printError.code));
+        
+        [channel closeChannel];
+        return false;
+    }
+    
+    NSLog(@"Success - Print Image: %@", @(printError.code));
+    [channel closeChannel];
+    
+    return true;
 }
 
-// Fills an image with bits.
-- (UIImage *)imageWithBits:(unsigned char *)bits withSize:(CGSize)size {
+- (UIImage *)getImageFromBase64:(NSString *)imageBase64) {
+    NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
 
-    // Creates a color space
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    if (colorSpace == NULL) {
-
-        fprintf(stderr, "Error allocating color space\n");
-        free(bits);
-        return nil;
-    }
-
-    CGContextRef context = CGBitmapContextCreate (bits, size.width, size.height, 8, size.width * 4, colorSpace, kCGImageAlphaPremultipliedFirst);
-    if (context == NULL) {
-
-        fprintf (stderr, "Error. Context not created\n");
-        free (bits);
-        CGColorSpaceRelease(colorSpace );
-        return nil;
-    }
-
-    CGColorSpaceRelease(colorSpace );
-    CGImageRef ref = CGBitmapContextCreateImage(context);
-    free(CGBitmapContextGetData(context));
-    CGContextRelease(context);
-
-    UIImage *img = [UIImage imageWithCGImage:ref];
-    CFRelease(ref);
-    return img;
+    UIImage* image = [UIImage imageWithData:imageData];
+    
+    UIImage* binaryImage = [self convertImageToBlackAndWhite:image];
+    
+    return binaryImage;
 }
 
-CGContextRef CreateARGBBitmapContext(CGSize size)
-{
-    CGContextRef    context = NULL;
-    CGColorSpaceRef colorSpace;
-    void *          bitmapData;
-    int             bitmapByteCount;
-    int             bitmapBytesPerRow;
-
-    // Get image width, height. We'll use the entire image.
-    size_t pixelsWide = size.width;
-    size_t pixelsHigh = size.height;
-
-    // Declare the number of bytes per row. Each pixel in the bitmap in this
-    // example is represented by 4 bytes; 8 bits each of red, green, blue, and
-    // alpha.
-    bitmapBytesPerRow   = (pixelsWide * 4);
-    bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
-
-    // Use the generic RGB color space.
-    colorSpace = CGColorSpaceCreateDeviceRGB();
-
-    if (colorSpace == NULL)
-    {
-        fprintf(stderr, "Error allocating color space\n");
-        return NULL;
-    }
-
-    // Allocate memory for image data. This is the destination in memory
-    // where any drawing to the bitmap context will be rendered.
-    bitmapData = malloc( bitmapByteCount );
-    if (bitmapData == NULL)
-    {
-        fprintf (stderr, "Memory not allocated!");
-        CGColorSpaceRelease( colorSpace );
-        return NULL;
-    }
-    // Create the bitmap context. We want pre-multiplied ARGB, 8-bits
-    // per component. Regardless of what the source image format is
-    // (CMYK, Grayscale, and so on) it will be converted over to the format
-    // specified here by CGBitmapContextCreate.
-    context = CGBitmapContextCreate (bitmapData,
-                                     pixelsWide,
-                                     pixelsHigh,
-                                     8,      // bits per component
-                                     bitmapBytesPerRow,
-                                     colorSpace,
-                                     kCGImageAlphaPremultipliedFirst);
-    if (context == NULL)
-    {
-        free (bitmapData);
-        fprintf (stderr, "Context not created!");
-    }
-
-    // Make sure and release colorspace before returning
-    CGColorSpaceRelease( colorSpace );
-
-    return context;
-
-}*/
-
-- (UIImage *)pureBlackAndWhiteImage2:(UIImage *)image {
+- (UIImage *)convertImageToBlackAndWhite:(UIImage *)image {
     UIGraphicsBeginImageContextWithOptions(image.size, YES, 1.0);
     
     CGRect imageRect = CGRectMake(0, 0, image.size.width, image.size.height);
@@ -387,7 +315,7 @@ CGContextRef CreateARGBBitmapContext(CGSize size)
     return filteredImage;
 }
 
-- (void) writeUIImage:(UIImage *)uiImage toPNG:(NSString *)file {
+- (void) writePngAs1bpp:(UIImage *)uiImage toPNG:(NSString *)file {
     FILE *fp = fopen([file UTF8String], "wb");
     // if (!fp) return [self reportError:[NSString stringWithFormat:@"Unable to open file %@", file]];
 
