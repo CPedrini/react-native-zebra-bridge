@@ -11,7 +11,7 @@
 #import "BROTHERSDK.h"
 #import "libpng/png.h"
 #import "BRLMPrinterKit.h"
-#import "BRLMChannel.h""
+#import "BRLMChannel.h"
 #import "BRLMOpenChannelError.h"
 #import "BRLMPrinterDriverGenerator.h"
 #import "BRLMPrinterDriver.h"
@@ -20,17 +20,17 @@
 #import "BRLMPrinterDefine.h"
 #import "BRLMPrintError.h"
 
+typedef struct PrintResult {
+    NSString* message;
+    bool success;
+};
+
 @implementation ZebraBridge
 
 RCT_EXPORT_MODULE()
 
-RCT_EXPORT_METHOD(sampleMethod:(NSString *)stringArgument numberParameter:(nonnull NSNumber *)numberArgument callback:(RCTResponseSenderBlock)callback)
-{
-    // TODO: Implement some actually useful functionality
-    callback(@[[NSString stringWithFormat: @"numberArgument: %@ stringArgument: %@", numberArgument, stringArgument]]);
-}
-
-RCT_EXPORT_METHOD(getAccessories:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(getAccessories:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 {
     EAAccessoryManager *manager = [EAAccessoryManager sharedAccessoryManager];
     
@@ -52,19 +52,46 @@ RCT_EXPORT_METHOD(getAccessories:(RCTPromiseResolveBlock)resolve rejecter:(RCTPr
         [parsedAccessories addObject:accessory];
     }
     
-    // NSError* error = nil;
-    
-    // NSData *jsonData = [NSJSONSerialization dataWithJSONObject:parsedAccessories options:NSJSONWritingPrettyPrinted error:&error];
-    
-    // NSString * jsonStr = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-    
     resolve(parsedAccessories);
 }
 
+RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+{
+    NSError* error;
+    NSArray* printers = [NetworkDiscoverer localBroadcast:(&error)];
+
+    NSLog(@"Available devices = %@", printers);
+    
+    NSMutableArray* parsedPrinters = [[NSMutableArray alloc] initWithCapacity:10];
+    
+    for (id object in printers) {
+        if ([object isKindOfClass:[DiscoveredPrinterNetwork class]]) {
+            DiscoveredPrinterNetwork* padr = (DiscoveredPrinterNetwork*) object;
+            
+            NSString* addr = [padr address];
+            
+            NSLog(@"Address is %@", addr);
+            
+            NSDictionary* parsedPrinter = @{
+                @"ipAddress": [padr address],
+                @"port": [NSNumber numberWithUnsignedLong:padr.port],
+                @"name": [padr dnsName],
+            };
+            
+            [parsedPrinters addObject:parsedPrinter];
+        }
+    }
+        
+    NSLog(@"Parsed results %@", parsedPrinters);
+    
+    resolve(parsedPrinters);
+}
+
 RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
-                 zpl:(NSString*)zpl
-                 printWithResolver:(RCTPromiseResolveBlock)resolve
-                 rejecter:(RCTPromiseRejectBlock)reject)
+                  zpl:(NSString*)zpl
+                  printWithResolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSLog(@"Provided serialNumber: %@", serialNumber);
     NSLog(@"Provided zpl: %@", zpl);
@@ -84,7 +111,7 @@ RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
     }
     
     if (!accessory) {
-        reject(@"", @"", @{@"error": @"Accessory not found."});
+        reject(@"error", @"Accessory not found.", nil);
     } else {
         // Connect to the device.
         
@@ -93,7 +120,6 @@ RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
         bool didOpen = [connection open];
         
         if (didOpen == YES) {
-            NSError* error;
             NSData* data = [NSData dataWithBytes:[zpl UTF8String] length:[zpl length]];
             NSError* writeError;
             
@@ -102,30 +128,91 @@ RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
             if (writeError == nil) {
                 resolve(@{@"message": @"Success!"});
             } else {
-                reject(@"", @"", @{@"error": @"Print failed."});
+                reject(@"error", @"Print failed.", nil);
             }
         } else {
-            reject(@"", @"", @{@"error": @"Couldn't connect to the accessory."});
+            reject(@"error", @"Couldn't connect to the accessory.", nil);
         }
     }
 }
 
-RCT_EXPORT_METHOD(printImage:(NSString*)serialNumber
-                  ipAddress:(NSString*)ipAddress
-                  port:(NSInteger)port
-                  imageBase64:(NSString*)imageBase64
+RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-    NSLog(@"Provided serialNumber: %@", serialNumber);
-    NSLog(@"Provided ipAddress: %@", ipAddress);
-    NSLog(@"Provided port: %@", [@(port) stringValue]);
-    NSLog(@"Provided image: %@", imageBase64);
+    NSLog(@"Provided parameters: %@", parameters);
     
+    NSLog(@"Provided printerSerialNumber: %@", parameters[@"printerSerialNumber"]);
+    NSLog(@"Provided printerIpAddress: %@", parameters[@"printerIpAddress"]);
+    NSLog(@"Provided printerPort: %@", parameters[@"printerPort"]);
+    NSLog(@"Provided printerModel: %@", parameters[@"printerModel"]);
+    NSLog(@"Provided halftoneMode: %@", parameters[@"halftoneMode"]);
+    
+    struct PrintResult result;
+    UIImage* image;
+    
+    @try {
+        image = [self getImageFromBase64:parameters[@"image"]];
+    }
+    @catch (NSException* e) {
+        reject(@"Error", @"Unable to parse the image. Please try again. If the error persist contact CGME Support.", nil);
+        return;
+    }
+    
+    @try {
+        NSNumberFormatter *formatter= [[NSNumberFormatter alloc] init];
+        [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
+
+        if ([parameters[@"printerModel"] isEqualToString:@"Zebra"]) {
+            NSNumber* port = nil;
+            
+            if (parameters[@"printerPort"] != [NSNull null]) {
+                port = [formatter numberFromString:parameters[@"printerPort"]];
+            }
+            
+            result = [self printZebraImage:parameters[@"printerSerialNumber"]
+                                 ipAddress:parameters[@"printerIpAddress"]
+                                      port:port
+                                     image:image];
+        } else if ([parameters[@"printerModel"] isEqualToString:@"BrotherSdk4"]) {
+            NSNumber* halftoneMode = [formatter numberFromString:parameters[@"halftoneMode"]];
+            
+            result = [self printBrotherSdk4:parameters[@"printerSerialNumber"]
+                                  ipAddress:parameters[@"printerIpAddress"]
+                                      image:image
+                               halftoneMode:halftoneMode];
+        } else if ([parameters[@"printerModel"] isEqualToString:@"BrotherSdkTypeB"]) {
+            result = [self printBrotherTypeB:parameters[@"printerSerialNumber"]
+                                       image:image];
+        } else {
+            reject(@"Error", @"Unsoported model provided. Review your configuration.", nil);
+            return;
+        }
+        
+        if (!result.success) {
+            reject(@"error", result.message, nil);
+            return;
+        }
+        
+        resolve(result.message);
+    }
+    @catch (NSException* e) {
+        reject(@"Error", @"Unknown error. Please try again. If the error persist contact CGME Support.", nil);
+        return;
+    }
+}
+
+- (struct PrintResult) printZebraImage:(NSString*)serialNumber
+                       ipAddress:(NSString*)ipAddress
+                            port:(NSNumber*)port
+                           image:(UIImage*)image
+{
+    struct PrintResult result;
+
     id<ZebraPrinterConnection, NSObject> connection = nil;
     
-    if (ipAddress != nil) {
-        connection = [[TcpPrinterConnection alloc] initWithAddress:ipAddress andWithPort:port];
+    if (ipAddress != [NSNull null]) {
+        connection = [[TcpPrinterConnection alloc] initWithAddress:ipAddress andWithPort:[port integerValue]];
     } else {
         connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialNumber];
     }
@@ -133,17 +220,10 @@ RCT_EXPORT_METHOD(printImage:(NSString*)serialNumber
     bool didOpen = [connection open];
     
     if (didOpen == YES) {
-        // Parse image
-        NSData* imageData = [[NSData alloc] initWithBase64EncodedString:[imageBase64 stringByReplacingOccurrencesOfString:@"data:image/png;base64," withString:@""] options:NSDataBase64DecodingIgnoreUnknownCharacters];
-        
-        UIImage* image = [UIImage imageWithData:imageData];
-        
         NSError* error;
         id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
         
         if (printer != nil) {
-            // PrinterLanguage language = [printer getPrinterControlLanguage];
-            
             id<GraphicsUtil, NSObject> graphicsUtil = [printer getGraphicsUtil];
             
             NSError* writeError;
@@ -151,76 +231,31 @@ RCT_EXPORT_METHOD(printImage:(NSString*)serialNumber
             [graphicsUtil printImage:[image CGImage] atX:5 atY:15 withWidth:-1 withHeight:-1 andIsInsideFormat:NO error:&writeError];
             
             if (writeError == nil) {
-                [connection close];
-                resolve(@{@"message": @"Success!"});
+                result.message = @"Success";
+                result.success = true;
             } else {
-                reject(@"", @"", @{@"error": @"Print failed."});
+                result.message = @"Print failed";
+                result.success = false;
             }
         } else {
-            reject(@"", @"", @{@"error": @"Couldn't detect language."});
+            result.message = @"Couldn't detect language";
+            result.success = false;
         }
     } else {
-        reject(@"", @"", @{@"error": @"Couldn't connect to the accessory."});
+        result.message = @"Couldn't connect to the accessory";
+        result.success = false;
     }
+    
+    [connection close];
+
+    return result;
 }
 
-RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+- (struct PrintResult) printBrotherTypeB:(NSString *)ipAddress
+                             image:(UIImage *)image
 {
-    NSError* error;
-    NSArray* printers = [NetworkDiscoverer localBroadcast:(&error)];
+    struct PrintResult result;
 
-    NSLog(@"Available devices = %@", printers);
-    
-    NSMutableArray* parsedPrinters = [[NSMutableArray alloc] initWithCapacity:10];
-    
-    for (id object in printers) {
-        if ([object isKindOfClass:[DiscoveredPrinterNetwork class]]) {
-            DiscoveredPrinterNetwork* padr = (DiscoveredPrinterNetwork*) object;
-            
-            NSString* addr = [padr address];
-            
-            NSLog(@"Address is %@", addr);
-            
-            
-            NSDictionary* parsedPrinter = @{
-                @"ipAddress": [padr address],
-                @"port": [NSNumber numberWithUnsignedLong:padr.port],
-                @"name": [padr dnsName],
-            };
-            
-            [parsedPrinters addObject:parsedPrinter];
-        }
-    }
-        
-    NSLog(@"Parsed results %@", parsedPrinters);
-    
-    resolve(parsedPrinters);
-}
-
-RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
-                  ipAddress:(NSString*)ipAddress
-                  imageBase64:(NSString*)imageBase64
-                  isTypeB:(BOOL)isTypeB
-                  printWithResolver:(RCTPromiseResolveBlock)resolve
-                  rejecter:(RCTPromiseRejectBlock)reject)
-{
-    NSLog(@"Provided serialNumber: %@", serialNumber);
-    NSLog(@"Provided ipAddress: %@", ipAddress);
-    NSLog(@"Provided isTypeB: %@", isTypeB ? @"YES" : @"NO");
-    NSLog(@"Provided image: %@", imageBase64);
-    
-    UIImage* image = [self getImageFromBase64:imageBase64];
-    
-    if (isTypeB == YES) {
-        [self printBrotherTypeB:ipAddress image:image];
-    } else {
-        [self printBrotherSdk4:serialNumber ipAddress:ipAddress image:image];
-    }
-
-    resolve(@{@"message": @"Success!"});
-}
-
-- (bool) printBrotherTypeB:(NSString *)ipAddress image:(UIImage *)image {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
     
@@ -245,16 +280,19 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
     [_lib formfeed];
     [_lib closeport];
 
-    return true;
+    return result;
 }
 
-#define assumeNotNull(_value) \
-    ({ if (!_value) abort(); __auto_type const _temp = _value; _temp; })
+- (struct PrintResult) printBrotherSdk4:(NSString *)serialNumber
+                              ipAddress:(NSString *)ipAddress
+                                  image:(UIImage *)image
+                           halftoneMode:(NSNumber *)halftoneMode
+{
+    struct PrintResult result;
 
-- (bool) printBrotherSdk4:(NSString *)serialNumber ipAddress:(NSString *)ipAddress image:(UIImage *)image {
     BRLMChannel* channel = nil;
     
-    if (ipAddress != nil) {
+    if (ipAddress != [NSNull null]) {
         channel = [[BRLMChannel alloc] initWithWifiIPAddress:ipAddress];
     } else {
         channel = [[BRLMChannel alloc] initWithBluetoothSerialNumber:serialNumber];
@@ -262,38 +300,53 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
     
     BRLMPrinterDriverGenerateResult* driverGenerateResult = [BRLMPrinterDriverGenerator openChannel:channel];
     
-    if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError ||
-        driverGenerateResult.driver == nil) {
-        NSLog(@"%@", @(driverGenerateResult.error.code));
-        return false;
+    if (driverGenerateResult.error.code != BRLMOpenChannelErrorCodeNoError || driverGenerateResult.driver == nil) {
+        NSLog(@"Connect to Printer - Error Code: %@", @(driverGenerateResult.error.code));
+
+        result.success = false;
+        result.message = @"Failed to connect to the printer";
+        
+        return result;
     }
     
     self.driver = driverGenerateResult.driver;
     
-    BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:[NSNumber numberWithInteger:BRLMPrinterModelTD_4550DNWB]];
-    
+    BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:BRLMPrinterModelTD_4550DNWB];
+
     BRLMCustomPaperSizeMargins margin = BRLMCustomPaperSizeMarginsMake(0.0, 0.0, 0.0, 0.0);
-    self.paperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWidth:2.0
+    self.paperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWidth:4.0
                                                                 margins:margin
                                                            unitOfLength:BRLMCustomPaperSizeLengthUnitInch];
     
     if (self.paperSize != nil) {
         tdSettings.customPaperSize = self.paperSize;
     }
+
+    if (halftoneMode != nil) {
+        tdSettings.halftone = (BRLMPrintSettingsHalftone) halftoneMode;
+    } else {
+        tdSettings.halftone = (BRLMPrintSettingsHalftone) 2;
+    }
     
     BRLMPrintError* printError = [self.driver printImageWithImage:image.CGImage settings:tdSettings];
     
     if (printError.code != BRLMPrintErrorCodeNoError) {
-        NSLog(@"Error - Print Image: %@", @(printError.code));
+        NSLog(@"Send Image - Error Code: %@", @(printError.code));
         
         [self.driver closeChannel];
-        return false;
+
+        result.success = false;
+        result.message = @"Failed to send the image to the printer";
+        
+        return result;
     }
     
-    NSLog(@"Success - Print Image: %@", @(printError.code));
     [self.driver closeChannel];
+
+    result.success = true;
+    result.message = @"Success";
     
-    return true;
+    return result;
 }
 
 - (UIImage *)getImageFromBase64:(NSString *)imageBase64 {
@@ -319,7 +372,7 @@ RCT_EXPORT_METHOD(printBrotherImage:(NSString*)serialNumber
     
     size_t bpp = CGImageGetBitsPerPixel(filteredImage.CGImage);
     
-    NSLog([NSString stringWithFormat:@"%zu@", bpp]);
+    NSLog([NSString stringWithFormat:@"Image BPP: %zu@", bpp]);
     
     UIGraphicsEndImageContext();
 
