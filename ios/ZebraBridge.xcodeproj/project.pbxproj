@@ -3,13 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		703F371A256E556F00246790 /* ZebraBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 703F3718256E556F00246790 /* ZebraBridge.m */; };
 		703F371E256E563700246790 /* libZSDK_API.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 703F371D256E563700246790 /* libZSDK_API.a */; };
-		70BF4F1D267630260082E546 /* lib/libBROTHERSDK.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 70BF4F1C267630260082E546 /* lib/libBROTHERSDK.a */; };
+		704FB6642683B019007A8D58 /* BrotherObjCFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 704FB6632683B019007A8D58 /* BrotherObjCFramework.framework */; platformFilter = ios; };
 		70D6E668267B83AB00B60B18 /* BRLMPrinterKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 70D6E667267B83AB00B60B18 /* BRLMPrinterKit.framework */; };
 /* End PBXBuildFile section */
 
@@ -30,7 +30,7 @@
 		703F3718256E556F00246790 /* ZebraBridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZebraBridge.m; sourceTree = "<group>"; };
 		703F3719256E556F00246790 /* ZebraBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZebraBridge.h; sourceTree = "<group>"; };
 		703F371D256E563700246790 /* libZSDK_API.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libZSDK_API.a; path = lib/libZSDK_API.a; sourceTree = "<group>"; };
-		70BF4F1C267630260082E546 /* lib/libBROTHERSDK.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = lib/libBROTHERSDK.a; sourceTree = "<group>"; };
+		704FB6632683B019007A8D58 /* BrotherObjCFramework.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = BrotherObjCFramework.framework; sourceTree = "<group>"; };
 		70D6E667267B83AB00B60B18 /* BRLMPrinterKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = BRLMPrinterKit.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -39,9 +39,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				704FB6642683B019007A8D58 /* BrotherObjCFramework.framework in Frameworks */,
 				70D6E668267B83AB00B60B18 /* BRLMPrinterKit.framework in Frameworks */,
 				703F371E256E563700246790 /* libZSDK_API.a in Frameworks */,
-				70BF4F1D267630260082E546 /* lib/libBROTHERSDK.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,8 +69,8 @@
 		703F3711256E544600246790 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				704FB6632683B019007A8D58 /* BrotherObjCFramework.framework */,
 				70D6E667267B83AB00B60B18 /* BRLMPrinterKit.framework */,
-				70BF4F1C267630260082E546 /* lib/libBROTHERSDK.a */,
 				703F371D256E563700246790 /* libZSDK_API.a */,
 			);
 			name = Frameworks;
@@ -187,7 +187,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					/usr/lib/swift,
+					"$(inherited)",
+				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)\"",
@@ -239,7 +242,10 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					/usr/lib/swift,
+					"$(inherited)",
+				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
 					"\"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)\"",
@@ -257,6 +263,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/**",
+					"$(PROJECT_DIR)",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -280,6 +287,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/**",
+					"$(PROJECT_DIR)",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",

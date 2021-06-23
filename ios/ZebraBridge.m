@@ -256,24 +256,17 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
 {
     struct PrintResult result;
 
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
-    
-    [self writePngAs1bpp:image toPNG:filePath];
-                               
     BROTHERSDK *_lib = [BROTHERSDK new];
 
-    [_lib openport:ipAddress];
+    NSInteger connectResult = [_lib openport:ipAddress];
 
-    [_lib downloadbmp:filePath asName:@"Receipt.png"];
-
-    [_lib setup:@"72" height:@"40" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
+    NSInteger setupResult = [_lib setup:@"101" height:@"152" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
     [_lib clearbuffer];
     [_lib nobackfeed];
 
-    [_lib sendCommand:@"PUTBMP 0,0,\"Receipt.png\"\r\n"];
-
-    [_lib printlabel:@"1" copies:@"1"];
+    NSInteger sendImageResult = [_lib sendImagebyFile:image x:0 y:0 width:8080 height:12160];
+    
+    NSInteger printResult = [_lib printlabel:@"1" copies:@"1"];
 
     NSLog([NSString stringWithFormat:@"%@",[_lib printerstatus]]);
 

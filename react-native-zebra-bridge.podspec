@@ -18,13 +18,13 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "9.0" }
   s.source       = { :git => "https://github.com/github_account/react-native-zebra-bridge.git", :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,c,m,swift}", "ios/BRLMPrinterKit.framework/Headers/*.h"
+  s.source_files = "ios/**/*.{h,c,m,swift}", "ios/BRLMPrinterKit.framework/Headers/*.h", "ios/BrotherObjCFramework.framework/Headers/*.h"
   s.requires_arc = true
 
   s.dependency "React"
   # ...
   # s.dependency "..."
 
-  s.ios.vendored_libraries = 'ios/lib/libZSDK_API.a', 'ios/lib/libBROTHERSDK.a'
+  s.ios.vendored_libraries = 'ios/lib/libZSDK_API.a'
 end
 

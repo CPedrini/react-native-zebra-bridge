@@ -35,7 +35,7 @@
        magnificationRateX: (NSString*) xmul
        magnificationRateY: (NSString*) ymul
                   content: (NSString*) content;
-- (NSInteger) sendCommand: (NSString*) commandText;
+- (NSInteger) sendcommand: (NSString*) commandText;
 - (NSInteger) printlabel: (NSString*) sets
                                   copies: (NSString*) copies;
 - (NSInteger) windowsfont: (int) x
@@ -69,4 +69,34 @@
            readDataSize: (NSString*) readDataSize
              memoryBank: (NSString*) memoryBank
                    data: (NSString*) data;
+- (NSInteger) printPDFbyPath:  (NSString*) srcPath
+                         x: (int) x
+                         y: (int) y
+               printer_dpi: (int) printer_dpi;
+- (NSInteger) printPDFbyPath:  (NSString*) srcPath
+                         x: (int) x
+                         y: (int) y
+               printer_dpi: (int) printer_dpi
+                page_index: (int) page_index;
+- (NSInteger) getPDFPageCountbyPath:  (NSString*) srcPath;
+- (NSInteger) printPDFbyFile:  (CGPDFDocumentRef) pdfDocument
+                          x: (int) x
+                          y: (int) y
+                printer_dpi: (int) printer_dpi;
+- (NSInteger) printPDFbyFile:  (CGPDFDocumentRef) pdfDocument
+                          x: (int) x
+                          y: (int) y
+                printer_dpi: (int) printer_dpi
+                 page_index: (int) page_index;
+- (NSInteger) getPDFPageCountbyFile:  (CGPDFDocumentRef) pdfDocument;
+- (NSInteger) sendImagebyPath: (NSString*) srcPath
+                            x: (int) x
+                            y: (int) y
+                        width: (int) width
+                       height: (int) height;
+- (NSInteger) sendImagebyFile: (UIImage*) img
+                            x: (int) x
+                            y: (int) y
+                        width: (int) width
+                       height: (int) height;
 @end
