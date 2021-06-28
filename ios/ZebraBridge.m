@@ -192,7 +192,7 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                                       image:image
                                halftoneMode:halftoneMode];
         } else if ([parameters[@"printerModel"] isEqualToString:@"BrotherSdkTypeB"]) {
-            result = [self printBrotherTypeB:parameters[@"printerSerialNumber"]
+            result = [self printBrotherTypeB:parameters[@"printerIpAddress"]
                                        image:image];
         } else {
             reject(@"Error", @"Unsoported model provided. Review your configuration.", nil);
@@ -278,19 +278,21 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
 
     NSInteger connectResult = [_lib openport:ipAddress];
 
-    NSInteger setupResult = [_lib setup:@"101" height:@"152" speed:@"4" density:@"15" sensor:@"0" vertical:@"0" offset:@"0"];
+    NSInteger setupResult = [_lib setup:@"101" height:@"152" speed:@"14.0" density:@"4" sensor:@"0" vertical:@"-140" offset:@"0"];
     [_lib clearbuffer];
-    [_lib nobackfeed];
+    // [_lib nobackfeed];
 
 //    NSInteger sendImageResult = [_lib sendImagebyFile:parsedImage x:0 y:0 width:8080 height:12160];
-    NSInteger sendImageResult = [_lib sendImagebyPath:parsedFilePath x:0 y:0 width:400 height:600];
+    NSInteger sendImageResult = [_lib sendImagebyPath:parsedFilePath x:0 y:0 width:800 height:1300];
     
     NSInteger printResult = [_lib printlabel:@"1" copies:@"1"];
 
     NSLog([NSString stringWithFormat:@"%@",[_lib printerstatus]]);
 
-    [_lib formfeed];
+    // [_lib formfeed];
     [_lib closeport];
+    
+    result.success = true;
 
     return result;
 }
@@ -334,10 +336,12 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
         tdSettings.customPaperSize = self.paperSize;
     }
 
-    if (halftoneMode != nil) {
-        tdSettings.halftone = (BRLMPrintSettingsHalftone) halftoneMode;
+    if ([halftoneMode isEqualToNumber:[NSNumber numberWithInt:1]]) {
+        tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
+    } else if ([halftoneMode isEqualToNumber:[NSNumber numberWithInt:2]]) {
+        tdSettings.halftone = BRLMPrintSettingsHalftonePatternDither;
     } else {
-        tdSettings.halftone = (BRLMPrintSettingsHalftone) 2;
+        tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
     }
     
     BRLMPrintError* printError = [self.driver printImageWithImage:image.CGImage settings:tdSettings];
@@ -457,10 +461,14 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     char *argv[] = {
         "convert",
         inputPath,
-        "-monochrome",
+        // "-colors", "2",
+        "-colorspace", "Gray",
+        // "-normalize",
+        //"-monochrome",
+        "-dither", "FloydSteinberg",
         "-type", "Bilevel",
-//        "-depth", "1",
-//        "-compress none",
+        "-depth", "1",
+        "-compress", "none",
         outputPath,
         NULL
     };
@@ -501,27 +509,6 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     UIImage *convertedImage = [UIImage imageWithContentsOfFile:outputImagePath];
     
     return convertedImage;
-
-    
-//    CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
-//    CGFloat cols = image.size.width;
-//    CGFloat rows = image.size.height;
-//
-//    cv::Mat cvMat(rows, cols, CV_8UC1);
-//
-//    CGContextRef contextRef = CGBitmapContextCreate(cvMat.data,
-//                                                    cols,
-//                                                    rows,
-//                                                    8,
-//                                                    cvMat.step[0],
-//                                                    colorSpace,
-//                                                    kCGImageAlphaNoneSkipLast |
-//                                                    kCGBitmapByteOrderDefault);
-//
-//    CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
-//    CGContextRelease(contextRef);
-//
-//    return cvMat;
 }
 
 #ifdef __cplusplus
