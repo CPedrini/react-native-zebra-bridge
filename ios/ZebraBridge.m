@@ -19,6 +19,16 @@
 #import "BRLMCustomPaperSize.h"
 #import "BRLMPrinterDefine.h"
 #import "BRLMPrintError.h"
+#import "ImageMagick.h"
+#import "MagickWand.h"
+//#ifdef __cplusplus
+//#include "magick/studio.h"
+//#include "magick/exception.h"
+//#include "magick/exception-private.h"
+//#include "magick/image.h"
+//#include "wand/MagickWand.h"
+//#include "wand/convert.h"
+//#endif
 
 typedef struct PrintResult {
     NSString* message;
@@ -255,6 +265,14 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                              image:(UIImage *)image
 {
     struct PrintResult result;
+    
+    NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString* originalFilePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"Receipt.png"];
+    NSString* parsedFilePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"ReceiptParsed.png"];
+    
+    [UIImagePNGRepresentation(image) writeToFile:originalFilePath atomically:YES];
+    
+    UIImage* parsedImage = [self magickConvert:originalFilePath to:parsedFilePath];
 
     BROTHERSDK *_lib = [BROTHERSDK new];
 
@@ -264,7 +282,8 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     [_lib clearbuffer];
     [_lib nobackfeed];
 
-    NSInteger sendImageResult = [_lib sendImagebyFile:image x:0 y:0 width:8080 height:12160];
+//    NSInteger sendImageResult = [_lib sendImagebyFile:parsedImage x:0 y:0 width:8080 height:12160];
+    NSInteger sendImageResult = [_lib sendImagebyPath:parsedFilePath x:0 y:0 width:400 height:600];
     
     NSInteger printResult = [_lib printlabel:@"1" copies:@"1"];
 
@@ -428,5 +447,84 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
 
     fclose(fp);
 }
+
+- (UIImage*)magickConvert:(NSString*)inputImagePath to:(NSString*)outputImagePath {
+    char *inputPath = strdup([inputImagePath UTF8String]);
+    char *outputPath = strdup([outputImagePath UTF8String]);
+    
+    // convert image -colorspace gray +dither -colors 2 -type bilevel result
+    
+    char *argv[] = {
+        "convert",
+        inputPath,
+        "-monochrome",
+        "-type", "Bilevel",
+//        "-depth", "1",
+//        "-compress none",
+        outputPath,
+        NULL
+    };
+    
+    MagickCoreGenesis(*argv, MagickFalse);
+    MagickWand *magick_wand = NewMagickWand();
+    NSData * dataObject = UIImagePNGRepresentation([UIImage imageWithContentsOfFile:inputImagePath]);
+    MagickBooleanType status;
+    status = MagickReadImageBlob(magick_wand, [dataObject bytes], [dataObject length]);
+    
+    if (status == MagickFalse) {
+        NSLog(@"Error %@", magick_wand);
+    }
+    
+    ImageInfo *imageInfo = AcquireImageInfo();
+    ExceptionInfo *exceptionInfo = AcquireExceptionInfo();
+    
+    int elements = 0;
+    while (argv[elements] != NULL)
+    {
+        elements++;
+    }
+    
+    // ConvertImageCommand(ImageInfo *, int, char **, char **, MagickExceptionInfo *);
+    status = ConvertImageCommand(imageInfo, elements, argv, NULL, exceptionInfo);
+    
+    if (exceptionInfo->severity != UndefinedException)
+    {
+        status=MagickTrue;
+        CatchException(exceptionInfo);
+    }
+    
+    if (status == MagickFalse) {
+        fprintf(stderr, "Error in call");
+        // ThrowWandException(magick_wand); // Always throws an exception here...
+    }
+    
+    UIImage *convertedImage = [UIImage imageWithContentsOfFile:outputImagePath];
+    
+    return convertedImage;
+
+    
+//    CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
+//    CGFloat cols = image.size.width;
+//    CGFloat rows = image.size.height;
+//
+//    cv::Mat cvMat(rows, cols, CV_8UC1);
+//
+//    CGContextRef contextRef = CGBitmapContextCreate(cvMat.data,
+//                                                    cols,
+//                                                    rows,
+//                                                    8,
+//                                                    cvMat.step[0],
+//                                                    colorSpace,
+//                                                    kCGImageAlphaNoneSkipLast |
+//                                                    kCGBitmapByteOrderDefault);
+//
+//    CGContextDrawImage(contextRef, CGRectMake(0, 0, cols, rows), image.CGImage);
+//    CGContextRelease(contextRef);
+//
+//    return cvMat;
+}
+
+#ifdef __cplusplus
+#endif
 
 @end
