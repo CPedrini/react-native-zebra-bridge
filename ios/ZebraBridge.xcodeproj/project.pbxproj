@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		70184C0426898B5D00E58A0A /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 70184C0326898B5D00E58A0A /* opencv2.framework */; };
 		703F371A256E556F00246790 /* ZebraBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 703F3718256E556F00246790 /* ZebraBridge.m */; };
 		703F371E256E563700246790 /* libZSDK_API.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 703F371D256E563700246790 /* libZSDK_API.a */; };
 		704FB6642683B019007A8D58 /* BrotherObjCFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 704FB6632683B019007A8D58 /* BrotherObjCFramework.framework */; platformFilter = ios; };
@@ -27,6 +28,7 @@
 
 /* Begin PBXFileReference section */
 		134814201AA4EA6300B7C361 /* libZebraBridge.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libZebraBridge.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		70184C0326898B5D00E58A0A /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = opencv2.framework; sourceTree = "<group>"; };
 		703F3718256E556F00246790 /* ZebraBridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZebraBridge.m; sourceTree = "<group>"; };
 		703F3719256E556F00246790 /* ZebraBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZebraBridge.h; sourceTree = "<group>"; };
 		703F371D256E563700246790 /* libZSDK_API.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libZSDK_API.a; path = lib/libZSDK_API.a; sourceTree = "<group>"; };
@@ -41,6 +43,7 @@
 			files = (
 				704FB6642683B019007A8D58 /* BrotherObjCFramework.framework in Frameworks */,
 				70D6E668267B83AB00B60B18 /* BRLMPrinterKit.framework in Frameworks */,
+				70184C0426898B5D00E58A0A /* opencv2.framework in Frameworks */,
 				703F371E256E563700246790 /* libZSDK_API.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -69,6 +72,7 @@
 		703F3711256E544600246790 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				70184C0326898B5D00E58A0A /* opencv2.framework */,
 				704FB6632683B019007A8D58 /* BrotherObjCFramework.framework */,
 				70D6E667267B83AB00B60B18 /* BRLMPrinterKit.framework */,
 				703F371D256E563700246790 /* libZSDK_API.a */,

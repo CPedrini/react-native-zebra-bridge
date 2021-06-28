@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "9.0" }
   s.source       = { :git => "https://github.com/github_account/react-native-zebra-bridge.git", :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,c,m,swift}", "ios/BRLMPrinterKit.framework/Headers/*.h", "ios/BrotherObjCFramework.framework/Headers/*.h"
+  s.source_files = "ios/**/*.{h,c,m,swift}", "ios/BRLMPrinterKit.framework/Headers/*.h", "ios/BrotherObjCFramework.framework/Headers/*.h", "ios/opencv2.framework/Headers/*.{h,c,m,swift}"
   s.requires_arc = true
 
   s.dependency "React"
