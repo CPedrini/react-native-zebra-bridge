@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
   s.requires_arc = true
 
   s.dependency "React"
-  s.dependency "OpenCV2"
+  s.dependency "ImageMagick", ">= 6.8pre"
   # ...
   # s.dependency "..."
 
