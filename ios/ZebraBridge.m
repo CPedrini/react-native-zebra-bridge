@@ -21,14 +21,6 @@
 #import "BRLMPrintError.h"
 #import "ImageMagick.h"
 #import "MagickWand.h"
-//#ifdef __cplusplus
-//#include "magick/studio.h"
-//#include "magick/exception.h"
-//#include "magick/exception-private.h"
-//#include "magick/image.h"
-//#include "wand/MagickWand.h"
-//#include "wand/convert.h"
-//#endif
 
 typedef struct PrintResult {
     NSString* message;
@@ -98,54 +90,6 @@ RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve
     resolve(parsedPrinters);
 }
 
-RCT_EXPORT_METHOD(printZpl:(NSString*)serialNumber
-                  zpl:(NSString*)zpl
-                  printWithResolver:(RCTPromiseResolveBlock)resolve
-                  rejecter:(RCTPromiseRejectBlock)reject)
-{
-    NSLog(@"Provided serialNumber: %@", serialNumber);
-    NSLog(@"Provided zpl: %@", zpl);
-    
-    EAAccessoryManager *manager = [EAAccessoryManager sharedAccessoryManager];
-    
-    EAAccessory* connectedAccessories = [manager connectedAccessories];
-
-    // Find accessory, we need to be sure that it is still there.
-
-    EAAccessory* accessory = nil;
-    
-    for (EAAccessory* managerAccessory in connectedAccessories) {
-        if ([serialNumber isEqualToString:managerAccessory.serialNumber]) {
-            accessory = managerAccessory;
-        }
-    }
-    
-    if (!accessory) {
-        reject(@"error", @"Accessory not found.", nil);
-    } else {
-        // Connect to the device.
-        
-        id<ZebraPrinterConnection, NSObject> connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialNumber];
-        
-        bool didOpen = [connection open];
-        
-        if (didOpen == YES) {
-            NSData* data = [NSData dataWithBytes:[zpl UTF8String] length:[zpl length]];
-            NSError* writeError;
-            
-            [connection write:data error:&writeError];
-            
-            if (writeError == nil) {
-                resolve(@{@"message": @"Success!"});
-            } else {
-                reject(@"error", @"Print failed.", nil);
-            }
-        } else {
-            reject(@"error", @"Couldn't connect to the accessory.", nil);
-        }
-    }
-}
-
 RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
@@ -156,7 +100,6 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     NSLog(@"Provided printerIpAddress: %@", parameters[@"printerIpAddress"]);
     NSLog(@"Provided printerPort: %@", parameters[@"printerPort"]);
     NSLog(@"Provided printerModel: %@", parameters[@"printerModel"]);
-    NSLog(@"Provided halftoneMode: %@", parameters[@"halftoneMode"]);
     
     struct PrintResult result;
     UIImage* image;
@@ -189,12 +132,9 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                                       port:port
                                      image:image];
         } else if ([parameters[@"printerModel"] isEqualToString:@"BrotherSdk4"]) {
-            NSNumber* halftoneMode = [formatter numberFromString:parameters[@"halftoneMode"]];
-            
             result = [self printBrotherSdk4:parameters[@"printerSerialNumber"]
                                   ipAddress:parameters[@"printerIpAddress"]
-                                      image:image
-                               halftoneMode:halftoneMode];
+                                      image:image];
         } else if ([parameters[@"printerModel"] isEqualToString:@"BrotherSdkTypeB"]) {
             result = [self printBrotherTypeB:parameters[@"printerIpAddress"]
                                        image:image];
@@ -304,7 +244,6 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
 - (struct PrintResult) printBrotherSdk4:(NSString *)serialNumber
                               ipAddress:(NSString *)ipAddress
                                   image:(UIImage *)image
-                           halftoneMode:(NSNumber *)halftoneMode
 {
     struct PrintResult result;
 
@@ -340,13 +279,7 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
         tdSettings.customPaperSize = self.paperSize;
     }
 
-    if ([halftoneMode isEqualToNumber:[NSNumber numberWithInt:1]]) {
-        tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
-    } else if ([halftoneMode isEqualToNumber:[NSNumber numberWithInt:2]]) {
-        tdSettings.halftone = BRLMPrintSettingsHalftonePatternDither;
-    } else {
-        tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
-    }
+    tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;
     
     BRLMPrintError* printError = [self.driver printImageWithImage:image.CGImage settings:tdSettings];
     
@@ -514,8 +447,5 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     
     return convertedImage;
 }
-
-#ifdef __cplusplus
-#endif
 
 @end
