@@ -173,11 +173,15 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
         NSNumberFormatter *formatter= [[NSNumberFormatter alloc] init];
         [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
 
-        if ([parameters[@"printerModel"] isEqualToString:@"Zebra"]) {
+        if (parameters[@"printerModel"] == [NSNull null] || [parameters[@"printerModel"] isEqualToString:@"Zebra"]) {
             NSNumber* port = nil;
             
             if (parameters[@"printerPort"] != [NSNull null]) {
-                port = [formatter numberFromString:parameters[@"printerPort"]];
+                if ([parameters[@"printerPort"] isKindOfClass:[NSNumber class]]) {
+                    port = parameters[@"printerPort"];
+                } else if ([parameters[@"printerPort"] isKindOfClass:[NSString class]]) {
+                    port = [formatter numberFromString:parameters[@"printerPort"]];
+                }
             }
             
             result = [self printZebraImage:parameters[@"printerSerialNumber"]
