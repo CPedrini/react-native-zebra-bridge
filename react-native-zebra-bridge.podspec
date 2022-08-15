@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.license      = "MIT"
   # optional - use expanded license entry instead:
   # s.license    = { :type => "MIT", :file => "LICENSE" }
-  s.authors      = { "Your Name" => "yourname@email.com" }
+  s.authors      = { "Ciro Pedrini" => "ciro.pedrini@gmail.com" }
   s.platforms    = { :ios => "9.0" }
   s.source       = { :git => "https://github.com/github_account/react-native-zebra-bridge.git", :tag => "#{s.version}" }
 
@@ -23,9 +23,15 @@ Pod::Spec.new do |s|
 
   s.dependency "React"
   s.dependency "ImageMagick", ">= 6.8pre"
-  # ...
-  # s.dependency "..."
+  s.dependency "libpng"
 
   s.ios.vendored_libraries = 'ios/lib/libZSDK_API.a'
+  s.ios.vendored_frameworks = 'ios/BRLMPrinterKit.framework', 'ios/BrotherObjCFramework.framework'
+  s.xcconfig = {
+    'USER_HEADER_SEARCH_PATHS' => [
+      '"${SRCROOT}/../../node_modules/react-native-zebra-bridge/ios/lib"/**',
+      '"${SRCROOT}/ImageMagick/include"/**'
+    ]
+  }
 end
 

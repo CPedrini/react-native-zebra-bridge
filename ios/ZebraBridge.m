@@ -90,26 +90,53 @@ RCT_EXPORT_METHOD(networkScan:(RCTPromiseResolveBlock)resolve
     resolve(parsedPrinters);
 }
 
+static inline double radians (double degrees)
+{
+    return degrees * M_PI / 180;
+}
+
+UIImage* rotate(UIImage* src)
+{
+    UIView *rotatedViewBox = [[UIView alloc] initWithFrame:CGRectMake(0, 0, src.size.width, src.size.height)];
+    CGAffineTransform t = CGAffineTransformMakeRotation(radians(90));
+    rotatedViewBox.transform = t;
+    CGSize rotatedSize = rotatedViewBox.frame.size;
+    
+    UIGraphicsBeginImageContext(rotatedSize);
+    CGContextRef bitmap = UIGraphicsGetCurrentContext();
+    
+    CGContextTranslateCTM(bitmap, rotatedSize.width/2, rotatedSize.height/2);
+    
+    CGContextRotateCTM(bitmap, radians(90));
+    
+    CGContextScaleCTM(bitmap, 1.0, -1.0);
+    CGContextDrawImage(bitmap, CGRectMake(-src.size.width / 2, -src.size.height/2, src.size.width, src.size.height), src.CGImage);
+    
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return image;
+}
+
 RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
                   printWithResolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-    NSLog(@"Provided parameters: %@", parameters);
-    
-    NSLog(@"Provided printerSerialNumber: %@", parameters[@"printerSerialNumber"]);
-    NSLog(@"Provided printerIpAddress: %@", parameters[@"printerIpAddress"]);
-    NSLog(@"Provided printerPort: %@", parameters[@"printerPort"]);
-    NSLog(@"Provided printerModel: %@", parameters[@"printerModel"]);
-    
     struct PrintResult result;
+    UIImage* originalImage;
     UIImage* image;
     
     @try {
-        image = [self getImageFromBase64:parameters[@"image"]];
+        originalImage = [self getImageFromBase64:parameters[@"image"]];
     }
     @catch (NSException* e) {
         reject(@"Error", @"Unable to parse the image. Please try again. If the error persist contact CGME Support.", nil);
         return;
+    }
+    
+    if ([parameters[@"landscape"] isEqualToString:@"true"]) {
+        image = rotate(originalImage);
+    } else {
+        image = originalImage;
     }
     
     @try {
@@ -270,13 +297,11 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     
     BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:BRLMPrinterModelTD_4550DNWB];
 
-    BRLMCustomPaperSizeMargins margin = BRLMCustomPaperSizeMarginsMake(0.0, 0.0, 0.0, 0.0);
-    self.paperSize = [[BRLMCustomPaperSize alloc] initRollWithTapeWidth:4.0
-                                                                margins:margin
-                                                           unitOfLength:BRLMCustomPaperSizeLengthUnitInch];
-    
-    if (self.paperSize != nil) {
-        tdSettings.customPaperSize = self.paperSize;
+    NSURL* customPaperFileUrl = [[NSBundle mainBundle] URLForResource:@"bst18act" withExtension:@"bin"];
+    if (customPaperFileUrl != nil)
+    {
+        BRLMCustomPaperSize* customPaperSize = [[BRLMCustomPaperSize alloc] initWithFile:customPaperFileUrl];
+        tdSettings.customPaperSize = customPaperSize;
     }
 
     tdSettings.halftone = BRLMPrintSettingsHalftoneErrorDiffusion;

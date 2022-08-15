@@ -1,4 +1,5 @@
 #import <React/RCTBridgeModule.h>
+#import <ExternalAccessory/ExternalAccessory.h>
 #import "BRLMPrinterDriver.h"
 #import "BRLMCustomPaperSize.h"
 
