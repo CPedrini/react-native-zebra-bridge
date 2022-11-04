@@ -297,7 +297,7 @@ RCT_EXPORT_METHOD(printImage:(NSDictionary *)parameters
     
     BRLMTDPrintSettings* tdSettings = [[BRLMTDPrintSettings alloc] initDefaultPrintSettingsWithPrinterModel:BRLMPrinterModelTD_4550DNWB];
 
-    NSURL* customPaperFileUrl = [[NSBundle mainBundle] URLForResource:@"bst18act" withExtension:@"bin"];
+    NSURL* customPaperFileUrl = [[NSBundle mainBundle] URLForResource:@"black_bst18act" withExtension:@"bin"];
     if (customPaperFileUrl != nil)
     {
         BRLMCustomPaperSize* customPaperSize = [[BRLMCustomPaperSize alloc] initWithFile:customPaperFileUrl];
